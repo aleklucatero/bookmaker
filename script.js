@@ -13,17 +13,6 @@ let pdfDoc = null,
     pageRendering = false,
     pageNumPending = null;
 
-// Debugging: Check if elements are correctly referenced
-console.log('fileInput:', fileInput);
-console.log('pdfContainer:', pdfContainer);
-console.log('canvas:', canvas);
-console.log('context:', context);
-console.log('pageCountDisplay:', pageCountDisplay);
-console.log('pageNumDisplay:', pageNumDisplay);
-console.log('pageCountElement:', pageCountElement);
-console.log('prevPageButton:', prevPageButton);
-console.log('nextPageButton:', nextPageButton);
-
 fileInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (file && file.type === 'application/pdf') {
@@ -33,11 +22,7 @@ fileInput.addEventListener('change', (e) => {
       pdfjsLib.getDocument({ data: pdfData }).promise.then((pdf) => {
         pdfDoc = pdf;
         pageCountElement.textContent = pdf.numPages;
-        if (pageCountDisplay) {
-          pageCountDisplay.classList.remove('hidden');
-        } else {
-          console.error('pageCountDisplay is null');
-        }
+        pageCountDisplay.classList.remove('hidden');
         renderPage(pageNum);
       }).catch((error) => {
         console.error('Error while loading PDF: ', error);
@@ -54,33 +39,25 @@ function renderPage(num) {
   pdfDoc.getPage(num).then((page) => {
     const viewport = page.getViewport({ scale: 1 });
     const containerWidth = pdfContainer.clientWidth;
-    const containerHeight = pdfContainer.clientHeight;
     const pageWidthScale = containerWidth / viewport.width;
-    const pageHeightScale = containerHeight / viewport.height;
-    const bestScale = Math.min(pageWidthScale, pageHeightScale);
 
-    const scaledViewport = page.getViewport({ scale: bestScale });
+    const scaledViewport = page.getViewport({ scale: pageWidthScale });
 
     canvas.width = scaledViewport.width;
     canvas.height = scaledViewport.height;
-
-    // Adjust the container size to match the canvas size
-    pdfContainer.style.width = `${canvas.width}px`;
-    pdfContainer.style.height = `${canvas.height}px`;
 
     const renderContext = {
       canvasContext: context,
       viewport: scaledViewport
     };
-    const renderTask = page.render(renderContext);
 
+    const renderTask = page.render(renderContext);
     renderTask.promise.then(() => {
       pageRendering = false;
       if (pageNumPending !== null) {
         renderPage(pageNumPending);
         pageNumPending = null;
       }
-      // Position the arrows dynamically
       positionArrows();
     });
   }).catch((error) => {
@@ -100,13 +77,13 @@ function queueRenderPage(num) {
 
 function positionArrows() {
   const containerRect = pdfContainer.getBoundingClientRect();
-  const arrowOffset = 10; // Adjust this value if needed
+  const arrowOffset = 10;
 
   prevPageButton.style.top = `${containerRect.top + containerRect.height / 2 - prevPageButton.offsetHeight / 2}px`;
   prevPageButton.style.left = `${containerRect.left - prevPageButton.offsetWidth - arrowOffset}px`;
 
   nextPageButton.style.top = `${containerRect.top + containerRect.height / 2 - nextPageButton.offsetHeight / 2}px`;
-  nextPageButton.style.right = `${containerRect.left + containerRect.width + arrowOffset}px`;
+  nextPageButton.style.right = `${containerRect.right - nextPageButton.offsetWidth + arrowOffset}px`;
 }
 
 document.getElementById('prev-page').addEventListener('click', () => {
